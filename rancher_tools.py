@@ -30,6 +30,14 @@ class TimeoutException(Exception):
     pass
 
 
+class ServiceNotFoundException(Exception):
+    pass
+
+
+class StackNotFoundException(Exception):
+    pass
+
+
 def get_svc(project_id, service_id):
     """
     Gets the JSON representation of a service in a project.
@@ -37,6 +45,48 @@ def get_svc(project_id, service_id):
     resp = requests.get(
         f'{CATTLE_URL}projects/{project_id}/services/{service_id}',
         auth=AUTH
+    )
+    resp.raise_for_status()
+    return resp.json()
+
+
+def get_stack_by_name(project_id, name):
+    """
+    Gets a stack by its name.
+    """
+    resp = requests.get(
+        f'{CATTLE_URL}projects/{project_id}/stacks',
+        auth=AUTH,
+        params=dict(name=name)
+    )
+    resp.raise_for_status()
+    for stack in resp.json()['data']:
+        if stack['name'] == name:
+            return stack
+    raise StackNotFoundException()
+
+
+def get_svc_by_stack_and_name(stack, name):
+    """
+    Gets the service by stack and name.
+    """
+    resp = requests.get(
+        stack['links']['services'],
+        auth=AUTH,
+        params=dict(name=name)
+    )
+    resp.raise_for_status()
+    for svc in resp.json()['data']:
+        if svc['name'] == name:
+            return svc
+    raise ServiceNotFoundException()
+
+
+def rename_svc(svc, new_name):
+    resp = requests.put(
+        svc['links']['self'],
+        auth=AUTH,
+        json=dict(name=new_name)
     )
     resp.raise_for_status()
     return resp.json()
@@ -73,19 +123,29 @@ def await_active(svc, timeout=None):
     return svc
 
 
-def change_lb_svc_target(svc, source_port, path, target_service_id):
+def get_lb_svc_target(lb_svc, source_port, path):
+    """
+    Gets the service which is targetted by the load balancer rule which
+    matches the source_port and path provided.
+    """
+    project_id, _ = svc_ids(lb_svc)
+    for pr in lb_svc['lbConfig']:
+        if pr['sourcePort'] == source_port and pr.get('path') == path:
+            return get_svc(project_id, pr['serviceId'])
+    raise ServiceNotFoundException()
+
+
+def change_lb_svc_target(lb_svc, source_port, path, target_svc_id):
     """
     Change the service target of a load balancer rule which matches the
     source_port and path provided.
     """
-    svc = deepcopy(svc)
-    svc = finish_any_previous_upgrade(svc)
-    svc = await_active(svc)
-    lb_config = svc['lbConfig']
+    lb_svc = deepcopy(lb_svc)
+    lb_config = lb_svc['lbConfig']
     changed = False
     for pr in lb_config['portRules']:
         if pr['sourcePort'] == source_port and pr.get('path') == path:
-            pr['serviceId'] = target_service_id
+            pr['serviceId'] = target_svc_id
             changed = True
             break
     if not changed:
@@ -93,7 +153,7 @@ def change_lb_svc_target(svc, source_port, path, target_service_id):
             f'Port rule with source_port {source_port!r} '
             f'and path {path!r} not found.')
     resp = requests.put(
-        svc['links']['self'],
+        lb_svc['links']['self'],
         auth=AUTH,
         json=dict(lbConfig=lb_config)
     )
