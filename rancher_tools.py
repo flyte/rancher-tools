@@ -73,7 +73,7 @@ def await_active(svc, timeout=None):
     return svc
 
 
-def change_lb_service_target(svc, source_port, path, target_service_id):
+def change_lb_svc_target(svc, source_port, path, target_service_id):
     """
     Change the service target of a load balancer rule which matches the
     source_port and path provided.
@@ -117,7 +117,7 @@ def finish_any_previous_upgrade(svc):
     return resp.json()
 
 
-def create_service(
+def create_svc(
         project_id, stack_id, name, image_name, config=None, launch_config=None):
     """
     Create a brand new service.
