@@ -35,7 +35,7 @@ def get_svc(project_id, service_id):
     Gets the JSON representation of a service in a project.
     """
     resp = requests.get(
-        CATTLE_URL+f'projects/{project_id}/services/{service_id}',
+        f'{CATTLE_URL}projects/{project_id}/services/{service_id}',
         auth=AUTH
     )
     resp.raise_for_status()
@@ -180,13 +180,9 @@ def upgrade_svc_images(svc, new_image=None, new_secondary_images=None):
     Upgrade a service to use a new image. Also upgrades sidekick services.
     """
     svc = deepcopy(svc)
-    project_id, service_id = svc_ids(svc)
-    name = svc['name']
-    state = svc['state']
-    print(f'Service name: {name!r}')
-    print(f'State: {state!r}')
-
     svc = finish_any_previous_upgrade(svc)
+    svc = await_active(svc)
+    project_id, service_id = svc_ids(svc)
 
     launch_config = svc['launchConfig']
     slcs = {x['name']: x for x in svc.get('secondaryLaunchConfigs', [])}
