@@ -129,7 +129,7 @@ def get_lb_svc_target(lb_svc, source_port, path):
     matches the source_port and path provided.
     """
     project_id, _ = svc_ids(lb_svc)
-    for pr in lb_svc['lbConfig']:
+    for pr in lb_svc['lbConfig']['portRules']:
         if pr['sourcePort'] == source_port and pr.get('path') == path:
             return get_svc(project_id, pr['serviceId'])
     raise ServiceNotFoundException()
