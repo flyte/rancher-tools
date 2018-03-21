@@ -234,15 +234,19 @@ def create_svc(
     return resp.json()
 
 
-def clone_svc(svc, new_name, new_image=None):
+def clone_svc(svc, new_name, new_image=None, config=None, launch_config=None):
     """
     Clone a service and optionally bring the clone up with a new image.
     """
     svc = deepcopy(svc)
     project_id, _ = svc_ids(svc)
+
+    svc.update(config or {})
+    svc['launchConfig'].update(launch_config or {})
     if new_image is not None:
         svc['launchConfig']['imageUuid'] = f'docker:{new_image}'
     svc['name'] = new_name
+
     resp = requests.post(
         f'{CATTLE_URL}projects/{project_id}/services',
         auth=AUTH,
