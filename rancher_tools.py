@@ -50,6 +50,15 @@ def get_svc(project_id, service_id):
     return resp.json()
 
 
+def delete_svc(svc):
+    """
+    Deletes a service.
+    """
+    resp = requests.delete(svc['links']['self'], auth=AUTH)
+    resp.raise_for_status()
+    return resp.json()
+
+
 def get_stack_by_name(project_id, name):
     """
     Gets a stack by its name.
@@ -64,6 +73,25 @@ def get_stack_by_name(project_id, name):
         if stack['name'] == name:
             return stack
     raise StackNotFoundException()
+
+
+def get_stack_svcs(stack):
+    """
+    Get all of the services in this stack.
+    """
+    resp = requests.get(stack['links']['services'], auth=AUTH)
+    resp.raise_for_status()
+    return resp.json()['data']
+
+
+def filter_stack_svcs_by_label(stack, key, value):
+    """
+    Filter the services in the stack by a label key/value.
+    """
+    svcs = get_stack_svcs(stack)
+    for svc in svcs:
+        if svc['launchConfig']['labels'].get(key) == value:
+            yield svc
 
 
 def get_svc_by_stack_and_name(stack, name):
