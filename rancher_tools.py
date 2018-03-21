@@ -123,6 +123,23 @@ def await_active(svc, timeout=None):
     return svc
 
 
+def await_healthy(svc, timeout=None):
+    """
+    Blocks until the service status becomes 'healthy'. Takes a timeout in
+    seconds, after which we will give up waiting and raise an exception.
+    """
+    if timeout is not None:
+        deadline = datetime.now() + timedelta(seconds=timeout)
+    else:
+        deadline = datetime.max
+    while svc['healthState'] != 'healthy':
+        if datetime.now() > deadline:
+            raise TimeoutException()
+        sleep(1)
+        svc = refresh_svc(svc)
+    return svc
+
+
 def get_lb_svc_target(lb_svc, source_port, path):
     """
     Gets the service which is targetted by the load balancer rule which
