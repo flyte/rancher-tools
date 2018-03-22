@@ -59,6 +59,19 @@ def delete_svc(svc):
     return resp.json()
 
 
+def activate_svc(svc):
+    """
+    Activates a service.
+    """
+    resp = requests.post(
+        svc['links']['self'],
+        auth=AUTH,
+        params=dict(action='activate')
+    )
+    resp.raise_for_status()
+    return resp.json()
+
+
 def get_stack_by_name(project_id, name):
     """
     Gets a stack by its name.
