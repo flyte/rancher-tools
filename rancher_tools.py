@@ -246,7 +246,8 @@ def create_svc(
         startOnCreate=True
     )
     _launch_config = dict(
-        tty=True
+        tty=True,
+        startOnCreate=True
     )
 
     # Add any provided config
